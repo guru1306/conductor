@@ -1,0 +1,7 @@
+dependencies {
+
+    compile project(':conductor-core')   
+    compile "com.google.inject:guice:${revGuice}"
+    compile "org.mongodb:mongo-java-driver:${revMongoClient}"
+    
+}
