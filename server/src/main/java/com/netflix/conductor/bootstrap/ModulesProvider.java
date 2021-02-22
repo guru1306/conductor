@@ -34,6 +34,7 @@ import com.netflix.conductor.noopindex.NoopIndexModule;
 import com.netflix.conductor.dao.RedisWorkflowModule;
 import com.netflix.conductor.elasticsearch.ElasticSearchModule;
 import com.netflix.conductor.locking.redis.config.RedisLockModule;
+import com.netflix.conductor.mongo.dao.module.MongoWorkflowModule;
 import com.netflix.conductor.mysql.MySQLWorkflowModule;
 import com.netflix.conductor.server.DynomiteClusterModule;
 import com.netflix.conductor.server.JerseyModule;
@@ -127,6 +128,12 @@ public class ModulesProvider implements Provider<List<AbstractModule>> {
                 modules.add(new RedisWorkflowModule());
                 logger.info("Starting conductor server using redis_sentinel.");
                 break;
+            case MONGO:
+            	modules.add(new MongoWorkflowModule());
+            	logger.info("Starting conductor server using mongo");
+            	break;
+            	
+            	
         }
 
         if (configuration.isIndexingPersistenceEnabled())

@@ -24,7 +24,7 @@ public class MongoDBProxy {
 		MongoClientSettings clientSettings  = MongoClientSettings.builder().applyConnectionString(connectionStringObj).build();
 									 
 		mongoclient = MongoClients.create(clientSettings);
-		mongoDatabase = mongoclient.getDatabase(configuration.getDBString());
+		mongoDatabase = mongoclient.getDatabase(mongoConfiguration.getMongoDBName());
 	}
 
 
