@@ -23,6 +23,7 @@ public class BaseMongoDAO {
     protected static final String EVENT = "event";
     
     
+    
     //object mappper settings to convert mongodb json to normal json. Long will have nested format withtout this
     protected JsonWriterSettings jsonWriterSettings = JsonWriterSettings.builder().outputMode(JsonMode.RELAXED).build(); 
     

@@ -43,8 +43,7 @@ public class MongoPollDataDAO extends BaseMongoDAO implements PollDataDAO {
         PollData pollData = new PollData(taskDefName, domain, workerId, System.currentTimeMillis());
         String payload = toJson(pollData);
         Document pollDocument = Document.parse(payload);
-        recordMongoDaoRequests("updatePollData");
-        recordRedisDaoPayloadSize("updatePollData", payload.length(), "n/a", "n/a");
+        recordMongoDaoRequests("updatePollData");        
         Bson query = Filters.eq(TASK_NAME, taskDefName);
 		FindOneAndReplaceOptions upsertOption = new FindOneAndReplaceOptions();
 		upsertOption.upsert(true);

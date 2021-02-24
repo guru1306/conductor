@@ -1,5 +1,6 @@
 package com.netflix.conductor.dao.mongo;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndReplaceOptions;
@@ -31,6 +33,7 @@ import com.netflix.conductor.mongo.MongoDBProxy;
 public class MongoEventHandlerDAO extends BaseMongoDAO implements EventHandlerDAO {
 
 	private static String EVENT_HANDLERS = "EVENT_HANDLERS"; 
+	protected static final String EVENT_ACTIVE = "active";
 	
 	
 	private static final Logger logger = LoggerFactory.getLogger(WorkflowRepairService.class);
@@ -88,8 +91,22 @@ public class MongoEventHandlerDAO extends BaseMongoDAO implements EventHandlerDA
 
 	@Override
 	public List<EventHandler> getEventHandlersForEvent(String event, boolean activeOnly) {
-		return null;
-        }
+		List<EventHandler> eventHandlers = new ArrayList<EventHandler>();
+		Bson eventQuery = Filters.eq(EVENT, event);
+		Bson active = Filters.eq(EVENT_ACTIVE,activeOnly);
+		Bson query = Filters.and(eventQuery,active);
+		FindIterable<Document> eventHandlerItr = db.getCollection(EVENT_HANDLERS).find(query);
+		MongoCursor<Document> eventHandlerCursor = eventHandlerItr.cursor();
+		while (eventHandlerCursor.hasNext()) {
+			
+			Document eventHandler_Doc = eventHandlerCursor.next();
+			logger.info("getEventHandlersForEvent   {}", eventHandler_Doc);
+			String json = eventHandler_Doc.toJson(jsonWriterSettings);
+			eventHandlers.add(readValue(json, EventHandler.class));
+			
+		}
+		return eventHandlers;
+	}
 	
 	public EventHandler getEventHandler(String event) {
 		Bson query = Filters.eq(EVENT, event);
