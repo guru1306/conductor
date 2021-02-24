@@ -1,5 +1,7 @@
 package com.netflix.conductor.dao.mongo;
 
+import javax.inject.Inject;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +15,7 @@ public class MongoRateLimitingDAO extends BaseMongoDAO implements RateLimitingDA
 
 	private static final Logger logger = LoggerFactory.getLogger(MongoRateLimitingDAO.class);
 	
+	@Inject
 	public MongoRateLimitingDAO(ObjectMapper objectMapper, Configuration config) {
 		super(objectMapper, config);
 		// TODO Auto-generated constructor stub

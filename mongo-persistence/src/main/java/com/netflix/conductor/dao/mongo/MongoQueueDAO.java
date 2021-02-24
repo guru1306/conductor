@@ -1,11 +1,8 @@
 package com.netflix.conductor.dao.mongo;
 
-import java.sql.Connection;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,32 +18,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.mongodb.ConnectionString;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndReplaceOptions;
-import com.mongodb.client.model.InsertOneOptions;
 import com.mongodb.client.model.Sorts;
-import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
-import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
-import com.mongodb.operation.OrderBy;
-import com.mongodb.operation.UpdateOperation;
-import com.netflix.conductor.common.metadata.tasks.TaskDef;
-import com.netflix.conductor.common.metadata.workflow.WorkflowDef;
 import com.netflix.conductor.core.config.Configuration;
 import com.netflix.conductor.core.events.queue.Message;
-import com.netflix.conductor.core.execution.WorkflowRepairService;
 import com.netflix.conductor.dao.QueueDAO;
 import com.netflix.conductor.mongo.MongoDBProxy;
 
@@ -227,8 +208,6 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 //	    TODO: Add created On field
 	    Bson filter = Filters.and(Filters.eq(QUEUE_NAME, queueName), Filters.eq(POPPED, false), Filters.lte(DELIVER_ON, date.getTime()));
 	    Bson sort = Sorts.orderBy(Sorts.descending(PRIORITY), Sorts.ascending(DELIVER_ON));
-	    
-	    UpdateOptions updateOptions = new UpdateOptions();
 	    
 	    //1. Fetch the docs
 	    FindIterable<Document> taskDefinitions = mongoDatabase.getCollection(QUEUE_COLLECTION).find(filter).sort(sort).limit(count);
