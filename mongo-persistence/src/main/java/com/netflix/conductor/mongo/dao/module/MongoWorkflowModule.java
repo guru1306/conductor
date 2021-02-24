@@ -13,7 +13,9 @@ import com.netflix.conductor.dao.dynomite.RedisExecutionDAO;
 import com.netflix.conductor.dao.dynomite.RedisPollDataDAO;
 import com.netflix.conductor.dao.dynomite.RedisRateLimitingDAO;
 import com.netflix.conductor.dao.dynomite.queue.DynoQueueDAO;
+import com.netflix.conductor.dao.mongo.MongoEventHandlerDAO;
 import com.netflix.conductor.dao.mongo.MongoMetaDataDAO;
+import com.netflix.conductor.dao.mongo.MongoPollDataDAO;
 import com.netflix.conductor.dyno.DynoProxy;
 import com.netflix.conductor.dyno.DynoShardSupplierProvider;
 import com.netflix.conductor.dyno.DynomiteConfiguration;
@@ -46,8 +48,9 @@ public class MongoWorkflowModule extends AbstractModule{
 	        
 	        bind(ExecutionDAO.class).to(RedisExecutionDAO.class);
 	        bind(RateLimitingDAO.class).to(RedisRateLimitingDAO.class);
-	        bind(EventHandlerDAO.class).to(RedisEventHandlerDAO.class);
-	        bind(PollDataDAO.class).to(RedisPollDataDAO.class);
+	        bind(EventHandlerDAO.class).to(MongoEventHandlerDAO.class);
+	       // bind(EventHandlerDAO.class).to(RedisEventHandlerDAO.class);
+	        bind(PollDataDAO.class).to(MongoPollDataDAO.class);
 	        bind(QueueDAO.class).to(DynoQueueDAO.class);
 	        
 	        bind(DynomiteConfiguration.class).to(SystemPropertiesDynomiteConfiguration.class);

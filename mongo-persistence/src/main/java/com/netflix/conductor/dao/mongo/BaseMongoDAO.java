@@ -19,6 +19,8 @@ public class BaseMongoDAO {
     protected static final String TASK_NAME = "name"; 
     protected static final String WORKFLOW_NAME = "name";
     protected static final String WORKFLOW_VERSION = "version";
+    protected static final String EVENT_NAME = "name";
+    protected static final String EVENT = "event";
     
     
     //object mappper settings to convert mongodb json to normal json. Long will have nested format withtout this

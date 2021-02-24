@@ -172,7 +172,7 @@ public class MongoMetaDataDAO extends BaseMongoDAO implements MetadataDAO {
 	@Override
 	public List<WorkflowDef> getAllWorkflowDefs() {
 		FindIterable<Document> taskDefinitions = db.getCollection(WORKFLOW_META_COLLECTION).find( new Document( ) );
-		return StreamSupport.stream(taskDefinitions.spliterator(), false).map(doc -> readValue(doc.toJson(), WorkflowDef.class)).collect(Collectors.toList());
+		return StreamSupport.stream(taskDefinitions.spliterator(), false).map(doc -> readValue(doc.toJson(jsonWriterSettings), WorkflowDef.class)).collect(Collectors.toList());
 	}
 
 }
