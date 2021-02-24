@@ -32,29 +32,5 @@ public class MongoWorkflowModule extends AbstractModule{
 	        bind(PollDataDAO.class).to(MongoPollDataDAO.class);
 	        bind(QueueDAO.class).to(MongoQueueDAO.class);
 	        
-	        
-//	        bind(MetadataDAO.class).to(MongoMetaDataDAO.class);
-//	        bind(QueueDAO.class).to(MongoQueueDAO.class);
-//	        bind(ExecutionDAO.class).to(RedisExecutionDAO.class);
-//	        bind(EventHandlerDAO.class).to(RedisEventHandlerDAO.class);
-//	        bind(RateLimitingDAO.class).to(RedisRateLimitingDAO.class);
-//	        bind(PollDataDAO.class).to(RedisPollDataDAO.class);
-//	        
-//	        bind(DynomiteConfiguration.class).to(SystemPropertiesDynomiteConfiguration.class);
-//	        bind(JedisCommands.class).toProvider(DynomiteJedisProvider.class).asEagerSingleton();
-//	        bind(JedisCommands.class)
-//	                .annotatedWith(Names.named(RedisQueuesProvider.READ_CLIENT_INJECTION_NAME))
-//	                .toProvider(DynomiteJedisProvider.class)
-//	                .asEagerSingleton();
-//	        bind(HostSupplier.class).toProvider(ConfigurationHostSupplierProvider.class);
-//	        bind(TokenMapSupplier.class).toProvider(TokenMapSupplierProvider.class);
-//	        bind(ShardSupplier.class).toProvider(DynoShardSupplierProvider.class);
-//	        
-//	        bind(ShardingStrategy.class).toProvider(RedisQueuesShardingStrategyProvider.class).asEagerSingleton();
-//	        bind(RedisQueues.class).toProvider(RedisQueuesProvider.class).asEagerSingleton();
-//	        bind(DynoProxy.class).asEagerSingleton();
-
-	       
-	        
 	    }
 }
