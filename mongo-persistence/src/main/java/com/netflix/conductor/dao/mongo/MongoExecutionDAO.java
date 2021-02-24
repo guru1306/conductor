@@ -3,6 +3,7 @@ package com.netflix.conductor.dao.mongo;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -239,10 +240,15 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 		String json = toJson(workflow);
 		
 		Bson query = Filters.eq(WORKFLOW_ID, workflow.getWorkflowId());
-		Document workflowIncomingDocument = Document.parse(json);
-		workflowIncomingDocument.remove(WORKFLOW_TASKS);//Updating all items except tasks. Looks like a hack to me
+		Document workflowIncomingDocument = Document.parse(json);		
+		workflowIncomingDocument.remove(WORKFLOW_TASKS);//Updating all items except tasks. Looks like a hack to me		
 		logger.info("updateWorkflow incoming document after modification {}", workflowIncomingDocument);
-		Document  workflowDocument = db.getCollection(WORKFLOW_EXECUTION_DEFS).findOneAndUpdate(query, workflowIncomingDocument);	
+		List<Bson> updates = new ArrayList<Bson>();
+		for (Entry<String, Object> updateEntry:workflowIncomingDocument.entrySet()) {
+			Bson update = Updates.set(updateEntry.getKey(), updateEntry.getValue());
+			updates.add(update);
+		}
+		Document  workflowDocument = db.getCollection(WORKFLOW_EXECUTION_DEFS).findOneAndUpdate(query, Updates.combine(updates));	
 		
 		if ( workflowDocument != null) {
 			Workflow updatedWorkflow = readValue( workflowDocument.toJson(jsonWriterSettings), Workflow.class);
