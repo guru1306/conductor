@@ -110,7 +110,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	@Override
 	public int getSize(String queueName) {
-        logger.info("getSize of queue: '{}'", queueName);
+        logger.debug("getSize of queue: '{}'", queueName);
 	    Bson filter = Filters.eq(QUEUE_NAME, queueName);
 		return (int) mongoDatabase.getCollection(QUEUE_COLLECTION).countDocuments(filter);
 	}
@@ -123,7 +123,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	@Override
 	public boolean setUnackTimeout(String queueName, String messageId, long unackTimeout) {
-        logger.info("setUnackTimeout for queue: '{}' with messageId: '{}'", queueName, messageId);
+        logger.debug("setUnackTimeout for queue: '{}' with messageId: '{}'", queueName, messageId);
         long updatedOffsetTimeInSecond = unackTimeout / 1000;
         
 	    Bson filter = Filters.eq("_id", getDocumentIDForQueueMessage(queueName, messageId));
@@ -131,21 +131,15 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 	    updatePredicates.add(Updates.set(OFFSET_TIME_SECONDS, updatedOffsetTimeInSecond));
 	    updatePredicates.add(Updates.set(DELIVER_ON, new Date().toInstant().plusSeconds(updatedOffsetTimeInSecond).getEpochSecond()));
 
-        logger.info("Updating unack timeout for queue: '{}' with messageId: '{}'", queueName, messageId);
+        logger.debug("Updating unack timeout for queue: '{}' with messageId: '{}'", queueName, messageId);
 		return mongoDatabase.getCollection(QUEUE_COLLECTION).updateMany(filter, updatePredicates).wasAcknowledged();
 	}
 
 	@Override
 	public void flush(String queueName) {
-        logger.info("flush for queue: '{}'", queueName);
+        logger.debug("flush for queue: '{}'", queueName);
 	    Bson filter = Filters.eq(QUEUE_NAME, queueName);
 		boolean ack = mongoDatabase.getCollection(QUEUE_COLLECTION).deleteMany(filter).wasAcknowledged();
-		
-		if (ack){
-	        logger.info("Succussfully deleted messages from queue: '{}'", queueName);
-		}else {
-	        logger.info("Failed to delete messages from queue: '{}'", queueName);
-		}
 	}
 
 	@Override
@@ -162,7 +156,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	@Override
 	public boolean resetOffsetTime(String queueName, String messageId) {
-        logger.info("resetOffsetTime in '{}' with '{}'", queueName, messageId);
+        logger.debug("resetOffsetTime in '{}' with '{}'", queueName, messageId);
         long offsetTimeInSecond = 0;    
         
 	    Bson filter = Filters.eq("_id", getDocumentIDForQueueMessage(queueName, messageId));
@@ -170,19 +164,19 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 	    updatePredicates.add(Updates.set(OFFSET_TIME_SECONDS, offsetTimeInSecond));
 	    updatePredicates.add(Updates.set(DELIVER_ON, new Date().toInstant().plusSeconds(offsetTimeInSecond)));
 
-        logger.info("Updating unack timeout for queue: '{}' with messageId: '{}'", queueName, messageId);
+        logger.debug("Updating unack timeout for queue: '{}' with messageId: '{}'", queueName, messageId);
 		return mongoDatabase.getCollection(QUEUE_COLLECTION).updateMany(filter, updatePredicates).wasAcknowledged();
 	}
 
 	private boolean existsMessage(String queueName, String messageID) {
-        logger.info("existsMessage in '{}' with '{}'", queueName, messageID);
+        logger.debug("existsMessage in '{}' with '{}'", queueName, messageID);
 	    FindIterable<Document> iterable = mongoDatabase.getCollection(QUEUE_COLLECTION).find(new Document("_id", getDocumentIDForQueueMessage(queueName, messageID)));
 	    return iterable.first() != null;
 	}
 
 	private void pushMessage(String queueName, String messageId, String payload, Integer priority,
 			long offsetTimeInSecond) {
-        logger.info("pushMessage to '{}'", queueName);
+        logger.debug("pushMessage to '{}'", queueName);
 		MongoQueue mongoQueue = new MongoQueue(queueName, messageId, priority, offsetTimeInSecond, payload);
 		
 		String json = toJson(mongoQueue);
@@ -192,12 +186,12 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 		upsertOption.upsert(true);
 	    Bson filter = Filters.eq("_id", mongoQueue.hashCode());
 	    
-        logger.info("Inserting docs for '{}'", queueName);
+        logger.debug("Inserting docs for '{}'", queueName);
 		mongoDatabase.getCollection(QUEUE_COLLECTION).findOneAndReplace(filter, taskDocument, upsertOption);
 //		mongoDatabase.getCollection(QUEUE_COLLECTION).insertOne(taskDocument);
 	}
 	private List<Message> peekMessages(String queueName, int count) {
-        logger.info("peekMessages from '{}'", queueName);
+        logger.debug("peekMessages from '{}'", queueName);
 		if (count < 1)
             return Collections.emptyList();
 		
@@ -231,19 +225,19 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	private List<Message> popMessages(String queueName, int count, int timeout) {
 		// TODO: vsheoran, mysql persistence add 1 millisecond. Figure out if this is required for mongodb.
-        logger.info("popMessages from '{}'", queueName);
+        logger.debug("popMessages from '{}'", queueName);
         
         long start = System.currentTimeMillis();
         List<Message> messages = peekMessages(queueName, count);
 
         while (messages.size() < count && ((System.currentTimeMillis() - start) < timeout)) {
-//            logger.info("popMessages -- Inside while. MessageSize: '{}', count: '{}', val<timeout: '{}'<'{}'", messages.size(), count, (System.currentTimeMillis() - start), timeout);
+//            logger.debug("popMessages -- Inside while. MessageSize: '{}', count: '{}', val<timeout: '{}'<'{}'", messages.size(), count, (System.currentTimeMillis() - start), timeout);
             Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
             messages = peekMessages(queueName, count);
         }
 
         if (messages.isEmpty()) {
-//            logger.info("popMessages -- messages present for the queue: '{}'", queueName);
+//            logger.debug("popMessages -- messages present for the queue: '{}'", queueName);
             return messages;
         }
 
@@ -262,7 +256,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 
 	private boolean removeMessage(String queueName, String messageId) {
-        logger.info("removeMessage for queue: '{}' with id: '{}'", queueName, messageId);
+        logger.debug("removeMessage for queue: '{}' with id: '{}'", queueName, messageId);
 	    Bson filter = Filters.eq("_id", getDocumentIDForQueueMessage(queueName, messageId));
 		return mongoDatabase.getCollection(QUEUE_COLLECTION).deleteOne(filter).wasAcknowledged();
 	}
