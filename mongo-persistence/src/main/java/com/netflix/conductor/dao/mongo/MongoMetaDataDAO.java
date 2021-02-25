@@ -19,6 +19,7 @@ import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndReplaceOptions;
+import com.mongodb.client.model.Projections;
 import com.netflix.conductor.common.metadata.tasks.TaskDef;
 import com.netflix.conductor.common.metadata.workflow.WorkflowDef;
 import com.netflix.conductor.core.config.Configuration;
@@ -30,6 +31,8 @@ public class MongoMetaDataDAO extends BaseMongoDAO implements MetadataDAO {
 	
 	private static String WORKFLOW_META_COLLECTION = "WORKFLOW_META_DEFS"; 
 	private static String TASK_META_COLLECTION = "TASK_META_DEFS";
+	
+	private static final String WORKFLOW_TASKS = "tasks";
 	
 	
 	private static final Logger logger = LoggerFactory.getLogger(WorkflowRepairService.class);
@@ -126,11 +129,13 @@ public class MongoMetaDataDAO extends BaseMongoDAO implements MetadataDAO {
 	@Override
 	public Optional<WorkflowDef> getLatestWorkflowDef(String name) {
 		Bson query = Filters.eq(WORKFLOW_NAME, name);
-		FindIterable<Document> documents = db.getCollection(WORKFLOW_META_COLLECTION).find(query);
+		
+		FindIterable<Document> documents = db.getCollection(WORKFLOW_META_COLLECTION).find(query).projection(Projections.exclude(WORKFLOW_TASKS));
 		MongoCursor<Document> itr = documents.iterator();
 		int maxVersion = -1;
 		WorkflowDef result = null;
 		//TODO see if max function is available in MongoDB
+		//Use max in db query
 		while (itr.hasNext())
 		{
 			Document document = itr.next();

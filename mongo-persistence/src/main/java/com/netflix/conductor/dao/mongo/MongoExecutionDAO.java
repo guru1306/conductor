@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -17,7 +18,6 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.FindOneAndReplaceOptions;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
@@ -39,14 +39,18 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 	
 	//TODO when field name changes, the whole persistence won't work. How to solve this?
 	private static final String WORKFLOW_ID = "workflowId";
-	private static final String WORKFLOW_NAME = "name";
+	private static final String WORKFLOW_NAME = "workflowName";
 	private static final String WORKFLOW_VERSION = "version";	
 	private static final String WORKFLOW_TASKS = "tasks";
 	private static final String WORKFLOW_TASKS_ID = "tasks.taskId";
 	private static final String WORKFLOW_TASKS_TYPE = "tasks.taskType";
 	private static final String WORKFLOW_TASKS_POSITIONAL = "tasks.$";
+	private static final String WORKFLOW_CORRELATION_ID = "correlationId";
+	private static final String WORKFLOW_CREATE_TIME = "createTime";
+	
 	private static final String TASK_ID = "taskId";
 	private static final String TASK_DEF_NAME = "tasks.taskDefName";
+	
 	
 	private static final String EVENT_EXECUTION_NAME = "name";
 	private static final String EVENT_EXECUTION_MESSAGE_ID = "messageId";
@@ -86,21 +90,12 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 		List<Task> result = new ArrayList<Task>();
 		for(Task task:tasks)
 		{
-			logger.info("Create task {}", task);
+			logger.info("Create task {} under workflow {}", task.getTaskId(),task.getWorkflowInstanceId());
 			validate(task);
 			if(task.getStatus() != null && !task.getStatus().isTerminal() && task.getScheduledTime() == 0){
 				task.setScheduledTime(System.currentTimeMillis());
 			}
-			String workflowID = task.getWorkflowInstanceId();
-			Bson query = Filters.eq(WORKFLOW_ID, workflowID);
-			String json = toJson(task);
-			UpdateResult updateResult = db.getCollection(WORKFLOW_EXECUTION_DEFS).updateOne(query, Updates.push(WORKFLOW_TASKS, Document.parse(json) ));			
-			if (updateResult.getModifiedCount() != 1) {
-				String errorMsg = String.format("More than one workflow with ID {} exists. UpdateResult {}",task.getWorkflowInstanceId(), updateResult);				
-				throw new ApplicationException(Code.CONFLICT, errorMsg);
-			}else {
-				logger.info("Expected number of documents modified for task id {}", task.getTaskId());
-			}
+			insertOrUpdateTask(task);
 			
 			result.add(task);
 		}
@@ -112,18 +107,34 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 	
 	@Override
 	public void updateTask(Task task) {
-		logger.info("Update task {}", task);
+		logger.info("Update task {} under workflow {}", task.getTaskId(),task.getWorkflowInstanceId());
 		validate(task);
-		String json = toJson(task);
-		Bson query = Filters.and(Filters.eq(WORKFLOW_ID, task.getWorkflowInstanceId()), Filters.eq(WORKFLOW_TASKS_ID, task.getTaskId()));				
-		UpdateResult updatedResult = db.getCollection(WORKFLOW_EXECUTION_DEFS).updateOne(query, Updates.set(WORKFLOW_TASKS_POSITIONAL, Document.parse(json)));
-		if ( updatedResult.getModifiedCount() != 1 ) {
-			String errorMsg = String.format("Unexpected number of documents modified. Update result {}", updatedResult );
-			throw new ApplicationException(Code.CONFLICT, errorMsg);			
-		}else {
-			logger.info("Expected number of documents modified for task id {}", task.getTaskId());
-		}
+		insertOrUpdateTask(task);
 		
+	}
+
+	private void insertOrUpdateTask(Task task) {
+		String json = toJson(task);
+		Bson query = Filters.and(Filters.eq(WORKFLOW_ID, task.getWorkflowInstanceId()), Filters.eq(WORKFLOW_TASKS_ID, task.getTaskId()));
+				
+		Document foundDoc = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(query).first();
+		UpdateResult updateResult = null;
+		if (foundDoc == null) {	
+			logger.info("Task not found. Inserting the  task {} bound to  workflow {} ",task.getTaskId(),task.getWorkflowInstanceId());
+			Bson findrootDocquery = Filters.eq(WORKFLOW_ID, task.getWorkflowInstanceId());
+			updateResult = db.getCollection(WORKFLOW_EXECUTION_DEFS).updateOne(findrootDocquery, Updates.push(WORKFLOW_TASKS, Document.parse(json)));
+		} else
+		{
+			logger.info("Task found. Updating the  task {} bound to  workflow {} ",task.getTaskId(),task.getWorkflowInstanceId());
+			updateResult = db.getCollection(WORKFLOW_EXECUTION_DEFS).updateOne(query, Updates.set(WORKFLOW_TASKS_POSITIONAL, Document.parse(json)));
+		}
+		 
+		logger.debug("updateResult {} for  insertOrUpdateTask task {} under workflow {}", updateResult, task.getTaskId(),task.getWorkflowInstanceId());
+	
+		if ( !updateResult.wasAcknowledged() ) {
+			String errorMsg = String.format("not acknowledged  for task %s", task.getTaskId() );
+			throw new ApplicationException(Code.CONFLICT, errorMsg);
+		}
 	}
 
 	@Override
@@ -142,7 +153,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 		UpdateResult updatedResult = db.getCollection(WORKFLOW_EXECUTION_DEFS).updateOne(query, Updates.pull(WORKFLOW_TASKS, removeDocument));
 		
 		if (updatedResult.getModifiedCount() != 1) {
-			String errorMsg = String.format("Modified unexpected documents. Update result {] ", updatedResult);
+			String errorMsg = String.format("Modified unexpected documents. Update result %s ", updatedResult);
 			throw new ApplicationException(Code.CONFLICT, errorMsg);
 			
 		}else{
@@ -349,7 +360,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 		//TODO use stream support and split iterator.
 		while( itr.hasNext() )	{
 			Document returnedDoc = itr.next();
-			Workflow workflow = readValue(returnedDoc.toJson(jsonWriterSettings), Workflow.class);
+			Workflow workflow = readValue(returnedDoc.toJson(jsonWriterSettings), Workflow.class);			
 			logger.info("getPendingWorkflowCount workflow {}", workflow);
 			if( !workflow.getStatus().isTerminal() ) {
 				count++;
@@ -364,9 +375,9 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 		long count = 0;
 		logger.info("getInProgressTaskCount  taskDefName  {}", taskDefName);
 		Bson query = Filters.eq(TASK_DEF_NAME, taskDefName);		
-		FindIterable<Document>  workflowDocuments = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(query);
+		FindIterable<Document>  workflowDocuments = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(query).projection(Projections.include(WORKFLOW_TASKS));
 		MongoCursor<Document> cursorDocument = workflowDocuments.cursor();
-		
+		//TODO use aggregation queries to get only matched tasks
 		while( cursorDocument.hasNext() ) {
 			Workflow workflow = readValue( cursorDocument.next().toJson(jsonWriterSettings), Workflow.class);
 			for(Task task:workflow.getTasks())
@@ -383,27 +394,34 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public List<Workflow> getWorkflowsByType(String workflowName, Long startTime, Long endTime) {
-		// TODO Auto-generated method stub
-		logger.error("Calling not implemented getWorkflowsByType");
-		return null;
+		
+		Bson nameEquals = Filters.eq(WORKFLOW_NAME, workflowName);
+		Bson startTimeGTE = Filters.gte(WORKFLOW_CREATE_TIME, startTime);
+		Bson endTimeLTE = Filters.lte(WORKFLOW_CREATE_TIME, endTime);		
+		Bson query = Filters.and(nameEquals, startTimeGTE, endTimeLTE);
+		FindIterable<Document> docsItr = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(query).projection(Projections.exclude(WORKFLOW_TASKS));		
+		
+		return StreamSupport.stream(docsItr.spliterator(), false).map(doc -> readValue(doc.toJson(jsonWriterSettings), Workflow.class)).collect(Collectors.toList());
+				
+		
 	}
 
 	@Override
-	public List<Workflow> getWorkflowsByCorrelationId(String workflowName, String correlationId, boolean includeTasks) {
-		// TODO Auto-generated method stub
-		logger.error("Calling not implemented getWorkflowsByCorrelationId");
-		return null;
+	public List<Workflow> getWorkflowsByCorrelationId(String workflowName, String correlationId, boolean includeTasks) {		
+		
+		Bson findWorkflowByCorrelationQuery = Filters.and(Filters.eq(WORKFLOW_NAME, workflowName), Filters.eq(WORKFLOW_CORRELATION_ID,correlationId));
+		FindIterable<Document> docsItr = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(findWorkflowByCorrelationQuery);
+		return StreamSupport.stream(docsItr.spliterator(), false).map(doc -> readValue(doc.toJson(jsonWriterSettings), Workflow.class)).collect(Collectors.toList());	
 	}
 
 	@Override
 	public boolean canSearchAcrossWorkflows() {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
 	@Override
 	public boolean addEventExecution(EventExecution ee) {
-		logger.info("addEventExecution ee ", ee );
+		logger.info("addEventExecution ee {}", ee );
 		String json = toJson(ee);
 		
 		Bson name = Filters.eq(EVENT_EXECUTION_NAME,ee.getName());
@@ -428,19 +446,25 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public void updateEventExecution(EventExecution ee) {
-		logger.info("updateEventExecution ee ", ee );
+		logger.info("updateEventExecution ee {}", ee );
 		String payload = toJson(ee);
 		
 		Bson name = Filters.eq(EVENT_EXECUTION_NAME,ee.getName());
 		Bson event = Filters.eq(EVENT_EXECUTION_EVENT, ee.getEvent());
 		Bson messageId = Filters.eq(EVENT_EXECUTION_MESSAGE_ID, ee.getMessageId());		
-		Bson findQuery = Filters.and(name,event,messageId);
+		Bson findQuery = Filters.and(name,event,messageId);		
 		
-		
-		FindOneAndReplaceOptions options = new FindOneAndReplaceOptions();
+		Document eventExecutionDoc = Document.parse(payload);
+		FindOneAndUpdateOptions options = new FindOneAndUpdateOptions();
 		options.upsert(true);
 		
-		Document updatedDoc = db.getCollection(EVENT_EXECUTION).findOneAndReplace(findQuery, Document.parse(payload), options);
+		List<Bson> updates = new ArrayList<Bson>();
+		for (Entry<String, Object> updateEntry:eventExecutionDoc.entrySet()) {
+			Bson update = Updates.set(updateEntry.getKey(), updateEntry.getValue());
+			updates.add(update);
+		}
+		
+		Document updatedDoc = db.getCollection(EVENT_EXECUTION).findOneAndUpdate(findQuery, Updates.combine(updates), options);
 		if (updatedDoc != null) {
 			logger.info("Updated existing document {}", updatedDoc);
 		}
@@ -449,7 +473,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public void removeEventExecution(EventExecution ee) {
-		logger.info("removeEventExecution ee ", ee );
+		logger.info("removeEventExecution ee {}", ee );
 		
 		
 		Bson name = Filters.eq(EVENT_EXECUTION_NAME,ee.getName());
