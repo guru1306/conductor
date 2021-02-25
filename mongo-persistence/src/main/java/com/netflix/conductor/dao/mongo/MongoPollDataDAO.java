@@ -48,6 +48,7 @@ public class MongoPollDataDAO extends BaseMongoDAO implements PollDataDAO {
 		FindOneAndReplaceOptions upsertOption = new FindOneAndReplaceOptions();
 		upsertOption.upsert(true);
 		db.getCollection(POLL_DATA).findOneAndReplace(query, pollDocument, upsertOption);
+		logger.info("Poll data updated for the task",taskDefName);
 
 	}
 
@@ -57,7 +58,8 @@ public class MongoPollDataDAO extends BaseMongoDAO implements PollDataDAO {
 		Bson query = Filters.eq(TASK_NAME, taskDefName);
 		Document taskDocument = db.getCollection(POLL_DATA).find(query).first();
 		PollData result = null;
-		if (taskDocument != null ) {				
+		if (taskDocument != null ) {
+			logger.info("getPollData",taskDocument);
 			result = readValue(taskDocument.toJson(jsonWriterSettings), PollData.class);
 		}		
 		return result;

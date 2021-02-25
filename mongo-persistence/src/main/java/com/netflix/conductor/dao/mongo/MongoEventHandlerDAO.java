@@ -51,12 +51,13 @@ public class MongoEventHandlerDAO extends BaseMongoDAO implements EventHandlerDA
 		// TODO Auto-generated method stub
 		Preconditions.checkNotNull(eventHandler.getName(), "Name");
 		String json = toJson(eventHandler);	
-		logger.info("Creating task document {} ", json);
+		logger.info("Creating eventhandler document {} ", json);
 		Document eventDocument = Document.parse(json);
 		Bson query = Filters.eq(EVENT_NAME, eventHandler.getName());
 		FindOneAndReplaceOptions upsertOption = new FindOneAndReplaceOptions();
 		upsertOption.upsert(true);
 		db.getCollection(EVENT_HANDLERS).findOneAndReplace(query, eventDocument, upsertOption);
+		logger.info("Added the eventhandler ");
 
 	}
 
@@ -69,7 +70,7 @@ public class MongoEventHandlerDAO extends BaseMongoDAO implements EventHandlerDA
 		Document result = db.getCollection(EVENT_HANDLERS).findOneAndReplace(query, taskDocument);
 		
 		if (result != null)				
-			logger.info("task is updated { }" ,result);
+			logger.info("Event handler is updated { }" ,result);
 
 	}
 
@@ -79,7 +80,7 @@ public class MongoEventHandlerDAO extends BaseMongoDAO implements EventHandlerDA
 		Bson query = Filters.eq(EVENT_NAME, name);
 		Document deletedDocument = db.getCollection(EVENT_HANDLERS).findOneAndDelete(query);
 		if ( deletedDocument != null) {
-			logger.info(" removed the document {}", deletedDocument.toJson());
+			logger.info(" removed the event handler document {}", deletedDocument.toJson());
 		}
 	}
 
@@ -110,10 +111,11 @@ public class MongoEventHandlerDAO extends BaseMongoDAO implements EventHandlerDA
 	
 	public EventHandler getEventHandler(String event) {
 		Bson query = Filters.eq(EVENT, event);
-		Document taskDocument = db.getCollection(EVENT_HANDLERS).find(query).first();
+		Document eventDocument = db.getCollection(EVENT_HANDLERS).find(query).first();
 		EventHandler result = null;
-		if (taskDocument != null ) {				
-			result = readValue(taskDocument.toJson(jsonWriterSettings), EventHandler.class);
+		if (eventDocument != null ) {
+			logger.info("getEventHandler   {}", eventDocument);
+			result = readValue(eventDocument.toJson(jsonWriterSettings), EventHandler.class);
 		}		
 		return result;
 		
