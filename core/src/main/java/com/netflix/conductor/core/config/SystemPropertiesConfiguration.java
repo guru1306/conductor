@@ -199,9 +199,10 @@ public class SystemPropertiesConfiguration implements Configuration {
         if (!StringUtils.isEmpty(additionalModuleClasses)) {
             try {
                 String[] classes = additionalModuleClasses.split(",");
-                for (String clazz : classes) {
+                for (String clazz : classes) {                	
                     Object moduleObj = Class.forName(clazz).newInstance();
                     if (moduleObj instanceof AbstractModule) {
+                    	logger.info("Adding module" +  clazz);
                         AbstractModule abstractModule = (AbstractModule) moduleObj;
                         modules.add(abstractModule);
                     } else {
