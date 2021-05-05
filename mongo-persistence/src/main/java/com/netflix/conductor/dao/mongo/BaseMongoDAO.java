@@ -58,12 +58,16 @@ public class BaseMongoDAO {
     void recordMongoDaoRequests(String action) {
     	recordMongoDaoRequests(action, "n/a", "n/a");
     }
+    
+    void recordMongoDaoCallsTime(String daoMethodName, String mongoQuerySpecificTag,long timeTakeninMillSeconds) {
+    	Monitors.recordMongoCallsTime(daoMethodName, mongoQuerySpecificTag, timeTakeninMillSeconds);
+    }
 
     void recordMongoDaoRequests(String action, String taskType, String workflowType) {
         Monitors.recordDaoRequests(DAO_NAME, action, taskType, workflowType);
     }
 
-    void rrecordMongoDaoEventRequests(String action, String event) {
+    void recordMongoDaoEventRequests(String action, String event) {
         Monitors.recordDaoEventRequests(DAO_NAME, action, event);
     }
 

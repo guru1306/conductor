@@ -16,7 +16,6 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndReplaceOptions;
-import com.netflix.conductor.common.metadata.events.EventHandler;
 import com.netflix.conductor.common.metadata.tasks.PollData;
 import com.netflix.conductor.core.config.Configuration;
 import com.netflix.conductor.core.execution.WorkflowRepairService;
@@ -42,8 +41,7 @@ public class MongoPollDataDAO extends BaseMongoDAO implements PollDataDAO {
 		Preconditions.checkNotNull(taskDefName, "taskDefName name cannot be null");
         PollData pollData = new PollData(taskDefName, domain, workerId, System.currentTimeMillis());
         String payload = toJson(pollData);
-        Document pollDocument = Document.parse(payload);
-        recordMongoDaoRequests("updatePollData");        
+        Document pollDocument = Document.parse(payload);           
         Bson query = Filters.eq(TASK_NAME, taskDefName);
 		FindOneAndReplaceOptions upsertOption = new FindOneAndReplaceOptions();
 		upsertOption.upsert(true);

@@ -356,4 +356,8 @@ public class Monitors {
 	public static void recordQueueMessageRepushFromRepairService(String queueName) {
 		counter(classQualifier, "queue_message_repushed", "queueName", queueName);
 	}
+	
+	public static void recordMongoCallsTime(String taskType, String additionalTag, long timeTaken) {
+		getTimer(classQualifier, "mongo_call", taskType, additionalTag).record(timeTaken, TimeUnit.MILLISECONDS);
+	} 
 }

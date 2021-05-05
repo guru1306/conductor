@@ -68,6 +68,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public List<Task> getPendingTasksByWorkflow(String taskName, String workflowId) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getPendingTasksByWorkflow");
 		// TODO Auto-generated method stub
 		List<Task> allTasks = getTasksForWorkflow(workflowId);
 		List<Task> pendingTasksByName = new ArrayList<Task>();
@@ -87,6 +88,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public List<Task> createTasks(List<Task> tasks) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "createTasks");
 		List<Task> result = new ArrayList<Task>();
 		for(Task task:tasks)
 		{
@@ -107,6 +109,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 	
 	@Override
 	public void updateTask(Task task) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "updateTask");
 		logger.info("Update task {} under workflow {}", task.getTaskId(),task.getWorkflowInstanceId());
 		validate(task);
 		insertOrUpdateTask(task);
@@ -146,6 +149,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 	@Override
 	public boolean removeTask(String taskId) {
 		
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "removeTask");
 		logger.info("Remove task {}", taskId);		
 		Bson query = Filters.eq(WORKFLOW_TASKS_ID, taskId);
 		
@@ -164,6 +168,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public Task getTask(String taskId) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getTask");
 		logger.info("getTask  id  {}", taskId);
 		Bson query = Filters.eq(WORKFLOW_TASKS_ID, taskId);
 		Bson innerArrayProjection = Filters.eq(TASK_ID, taskId);
@@ -180,6 +185,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public List<Task> getTasks(List<String> taskIds) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getTasks");
 		
 		logger.info("getTasks {}", taskIds);
 		List<Task> result = new ArrayList<Task>();
@@ -210,6 +216,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public List<Task> getPendingTasksForTaskType(String taskType) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getPendingTasksForTaskType");
 		List<Task> pendingTasks = new ArrayList<Task>();
 		logger.info("getPendingTasksForTaskType {}", taskType);
 		Bson query = Filters.eq(WORKFLOW_TASKS_TYPE, taskType);
@@ -229,6 +236,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public List<Task> getTasksForWorkflow(String workflowId) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getTasksForWorkflow");
 		logger.info("getTasksForWorkflow id {}", workflowId);
 		Bson query = Filters.eq(WORKFLOW_ID, workflowId);
 		Document  workflowDocument = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(query).first();		
@@ -239,7 +247,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public String createWorkflow(Workflow workflow) {
-		
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "createWorkflow");
 		String json = toJson(workflow);
 		Document workflowDocument = Document.parse(json);
 		db.getCollection(WORKFLOW_EXECUTION_DEFS).insertOne(workflowDocument);
@@ -248,6 +256,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public String updateWorkflow(Workflow workflow) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "updateWorkflow");
 		String json = toJson(workflow);
 		
 		Bson query = Filters.eq(WORKFLOW_ID, workflow.getWorkflowId());
@@ -272,6 +281,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public boolean removeWorkflow(String workflowId) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "removeWorkflow");
 		Bson query = Filters.eq(WORKFLOW_ID, workflowId);
 		Document  workflowDocument = db.getCollection(WORKFLOW_EXECUTION_DEFS).findOneAndDelete(query);	
 		if (workflowDocument != null) {
@@ -296,7 +306,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public Workflow getWorkflow(String workflowId) {
-		
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getWorkflow");
 		Bson query = Filters.eq(WORKFLOW_ID, workflowId);
 		Document  workflowDocument = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(query).first();	
 		if ( workflowDocument != null) {
@@ -310,7 +320,8 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 	}
 
 	@Override
-	public Workflow getWorkflow(String workflowId, boolean includeTasks) {
+	public Workflow getWorkflow(String workflowId, boolean includeTasks) {		
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getWorkflowWithTasks="+includeTasks );
 		
 		Bson query = Filters.eq(WORKFLOW_ID, workflowId);
 		Document  workflowDocument = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(query).first();	
@@ -328,12 +339,14 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public List<String> getRunningWorkflowIds(String workflowName, int version) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getRunningWorkflowIds");
 		List<Workflow> pendingWorkflows = getPendingWorkflowsByType(workflowName, version);
 		return pendingWorkflows.stream().map(Workflow::getWorkflowId).collect(Collectors.toList());
 	}
 
 	@Override
 	public List<Workflow> getPendingWorkflowsByType(String workflowName, int version) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getPendingWorkflowsByType");
 		List<Workflow> runningWorkflows = new ArrayList<>();
 		Bson query = Filters.and( Filters.eq(WORKFLOW_NAME, workflowName) , Filters.eq(WORKFLOW_VERSION, version) );
 		FindIterable<Document>  workflowDocuments = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(query);		
@@ -352,6 +365,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public long getPendingWorkflowCount(String workflowName) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getPendingWorkflowCount");
 		//TODO Need better ways to speed up the fetching. Directly use not completed, not terminated.
 		long count = 0;
 		Bson query = Filters.eq(WORKFLOW_NAME, workflowName);
@@ -372,6 +386,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public long getInProgressTaskCount(String taskDefName) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getInProgressTaskCount");
 		long count = 0;
 		logger.info("getInProgressTaskCount  taskDefName  {}", taskDefName);
 		Bson query = Filters.eq(TASK_DEF_NAME, taskDefName);		
@@ -394,7 +409,7 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 
 	@Override
 	public List<Workflow> getWorkflowsByType(String workflowName, Long startTime, Long endTime) {
-		
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getWorkflowsByType");
 		Bson nameEquals = Filters.eq(WORKFLOW_NAME, workflowName);
 		Bson startTimeGTE = Filters.gte(WORKFLOW_CREATE_TIME, startTime);
 		Bson endTimeLTE = Filters.lte(WORKFLOW_CREATE_TIME, endTime);		
@@ -407,7 +422,8 @@ public class MongoExecutionDAO extends BaseMongoDAO implements ExecutionDAO{
 	}
 
 	@Override
-	public List<Workflow> getWorkflowsByCorrelationId(String workflowName, String correlationId, boolean includeTasks) {		
+	public List<Workflow> getWorkflowsByCorrelationId(String workflowName, String correlationId, boolean includeTasks) {
+		recordMongoDaoEventRequests(WORKFLOW_EXECUTION_DEFS, "getWorkflowsByCorrelationId");
 		
 		Bson findWorkflowByCorrelationQuery = Filters.and(Filters.eq(WORKFLOW_NAME, workflowName), Filters.eq(WORKFLOW_CORRELATION_ID,correlationId));
 		FindIterable<Document> docsItr = db.getCollection(WORKFLOW_EXECUTION_DEFS).find(findWorkflowByCorrelationQuery);

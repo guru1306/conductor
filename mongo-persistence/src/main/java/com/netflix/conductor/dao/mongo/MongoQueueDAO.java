@@ -47,7 +47,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	@Inject
 	public MongoQueueDAO(MongoDBProxy mongoProxy, ObjectMapper objectMapper, Configuration config) {
-		super(objectMapper, config);
+		super(objectMapper, config);		
 		logger.info(MongoQueueDAO.class.getName() + " is ready to serve");
 		mongoDatabase = mongoProxy.getMongoDatabase();
 	}
@@ -58,16 +58,19 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	@Override
 	public void push(String queueName, String messageID, long offsetTimeInSecond) {
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "push");
 		push(queueName, messageID, 0, offsetTimeInSecond);
 	}
 
 	@Override
 	public void push(String queueName, String messageID, int priority, long offsetTimeInSecond) {
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "pushWithPriority");
 		pushMessage(queueName, messageID, null, priority, offsetTimeInSecond);
 	}
 
 	@Override
 	public void push(String queueName, List<Message> messages) {
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "pushMessages");
 		// TODO Auto-generated method stub
 		messages
         .forEach(message -> pushMessage(queueName, message.getId(), message.getPayload(), message.getPriority(), 0));
@@ -76,12 +79,14 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 	@Override
 	public boolean pushIfNotExists(String queueName, String messageID, long offsetTimeInSecond) {
 		// TODO Auto-generated method stub
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "pushIfNotExists");
         return pushIfNotExists(queueName, messageID, 0, offsetTimeInSecond);
 	}
 
 	@Override
 	public boolean pushIfNotExists(String queueName, String messageID, int priority, long offsetTimeInSecond) {
 		// TODO Auto-generated method stub
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "pushIfNotExistsWithPriority");
 		if (!existsMessage(queueName, messageID)) {
             pushMessage(queueName, messageID, null, priority, offsetTimeInSecond);
             return true;
@@ -91,13 +96,15 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	@Override
 	public List<String> pop(String queueName, int count, int timeout) {
-        List<Message> messages = popMessages(queueName, count, timeout);
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "pop");
+		List<Message> messages = popMessages(queueName, count, timeout);
         if(messages == null) return new ArrayList<>();
         return messages.stream().map(Message::getId).collect(Collectors.toList());
 	}
 
 	@Override
 	public List<Message> pollMessages(String queueName, int count, int timeout) {
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "pollMessages");
         List<Message> messages = popMessages(queueName, count, timeout);
         if(messages == null) return new ArrayList<>();
         return messages;
@@ -105,11 +112,13 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	@Override
 	public void remove(String queueName, String messageId) {
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "remove");
 		removeMessage(queueName, messageId);
 	}
 
 	@Override
 	public int getSize(String queueName) {
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "getSize");
         logger.debug("getSize of queue: '{}'", queueName);
 	    Bson filter = Filters.eq(QUEUE_NAME, queueName);
 		return (int) mongoDatabase.getCollection(QUEUE_COLLECTION).countDocuments(filter);
@@ -118,11 +127,13 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 	@Override
 	public boolean ack(String queueName, String messageId) {
 		// TODO Auto-generated method stub
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "ack");
 		return removeMessage(queueName, messageId);
 	}
 
 	@Override
 	public boolean setUnackTimeout(String queueName, String messageId, long unackTimeout) {
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "setUnackTimeout");
         logger.debug("setUnackTimeout for queue: '{}' with messageId: '{}'", queueName, messageId);
         long updatedOffsetTimeInSecond = unackTimeout / 1000;
         
@@ -137,6 +148,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	@Override
 	public void flush(String queueName) {
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "flush");
         logger.debug("flush for queue: '{}'", queueName);
 	    Bson filter = Filters.eq(QUEUE_NAME, queueName);
 		boolean ack = mongoDatabase.getCollection(QUEUE_COLLECTION).deleteMany(filter).wasAcknowledged();
@@ -156,6 +168,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	@Override
 	public boolean resetOffsetTime(String queueName, String messageId) {
+		recordMongoDaoEventRequests(QUEUE_COLLECTION, "resetOffsetTime");
         logger.debug("resetOffsetTime in '{}' with '{}'", queueName, messageId);
         long offsetTimeInSecond = 0;    
         
@@ -169,6 +182,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 	}
 
 	private boolean existsMessage(String queueName, String messageID) {
+		
         logger.debug("existsMessage in '{}' with '{}'", queueName, messageID);
 	    FindIterable<Document> iterable = mongoDatabase.getCollection(QUEUE_COLLECTION).find(new Document("_id", getDocumentIDForQueueMessage(queueName, messageID)));
 	    return iterable.first() != null;
@@ -176,6 +190,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 
 	private void pushMessage(String queueName, String messageId, String payload, Integer priority,
 			long offsetTimeInSecond) {
+		
         logger.debug("pushMessage to '{}'", queueName);
 		MongoQueue mongoQueue = new MongoQueue(queueName, messageId, priority, offsetTimeInSecond, payload);
 		
@@ -191,6 +206,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 //		mongoDatabase.getCollection(QUEUE_COLLECTION).insertOne(taskDocument);
 	}
 	private List<Message> peekMessages(String queueName, int count) {
+		
         logger.debug("peekMessages from '{}'", queueName);
 		if (count < 1)
             return Collections.emptyList();
@@ -224,6 +240,7 @@ public class MongoQueueDAO extends BaseMongoDAO implements QueueDAO {
 	}
 
 	private List<Message> popMessages(String queueName, int count, int timeout) {
+		
 		// TODO: vsheoran, mysql persistence add 1 millisecond. Figure out if this is required for mongodb.
         logger.debug("popMessages from '{}'", queueName);
         
