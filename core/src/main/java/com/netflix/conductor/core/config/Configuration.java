@@ -492,7 +492,7 @@ public interface Configuration {
 	Long getMaxTaskOutputPayloadSizeThresholdKB();
 
     enum DB {
-        REDIS, DYNOMITE, MEMORY, REDIS_CLUSTER, MYSQL, POSTGRES, CASSANDRA, REDIS_SENTINEL
+        REDIS, DYNOMITE, MEMORY, REDIS_CLUSTER, MYSQL, POSTGRES, CASSANDRA, REDIS_SENTINEL, MONGO
     }
 
     enum LOCKING_SERVER {
