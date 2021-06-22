@@ -37,6 +37,7 @@ import javax.inject.Inject;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static com.netflix.conductor.core.execution.ApplicationException.Code.INTERNAL_ERROR;
 
@@ -93,6 +94,16 @@ public class Event extends WorkflowSystemTask {
 			task.setReasonForIncompletion("No queue found to publish.");
 			task.setStatus(Status.FAILED);
 		}
+		
+		try
+		{
+			logger.debug("Sleeping for 300ms");
+			TimeUnit.MILLISECONDS.sleep(300);
+		}
+		catch (Exception e) {
+			logger.debug("Failed to sleep for 300ms");
+		}
+		
 	}
 
 	@Override

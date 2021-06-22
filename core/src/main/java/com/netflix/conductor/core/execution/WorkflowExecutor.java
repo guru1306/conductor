@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -918,7 +919,12 @@ public class WorkflowExecutor {
 
         taskResult.getLogs().forEach(taskExecLog -> taskExecLog.setTaskId(task.getTaskId()));
         executionDAOFacade.addTaskExecLog(taskResult.getLogs());
-
+        LOGGER.debug("Sleeping after updateTask for 600ms");
+        try {
+			TimeUnit.MILLISECONDS.sleep(600);
+		} catch (InterruptedException e) {
+			LOGGER.debug("Failed to sleep for 600ms");
+		}
         decide(workflowId);
 
         if (task.getStatus().isTerminal()) {
